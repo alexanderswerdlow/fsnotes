@@ -22,6 +22,7 @@ extension AppDelegate {
     enum FSNotesRoutes: String {
         case find = "find"
         case new = "new"
+        case append = "append"
     }
     
     enum NvALTRoutes: String {
@@ -98,12 +99,13 @@ extension AppDelegate {
     
     func FSNotesRouter(_ url: URL) {
         guard let directive = url.host else { return }
-        
         switch directive {
         case FSNotesRoutes.find.rawValue:
             RouteFSNotesFind(url)
         case FSNotesRoutes.new.rawValue:
             RouteFSNotesNew(url)
+        case FSNotesRoutes.append.rawValue:
+            RouteFSNotesAppend(url)
         default:
             break
         }
@@ -184,6 +186,40 @@ extension AppDelegate {
         }
 
         create(name: title, content: body)
+    }
+    
+    func RouteFSNotesAppend(_ url: URL) {
+        var title = ""
+        var body = ""
+        var project = ""
+        
+        if let titleParam = url["title"] {
+            title = titleParam
+        }
+        
+        if let txtParam = url["txt"] {
+            body = txtParam
+        }
+        else if let htmlParam = url["html"] {
+            body = htmlParam
+        }
+        
+        if let projectParam = url["project"] {
+            project = projectParam
+        }
+        
+        guard nil != ViewController.shared() else {
+            self.newName = title
+            self.newContent = body
+            return
+        }
+        
+        append(name: title, content: body, project: project)
+    }
+    
+    func append(name: String, content: String, project: String) {
+        guard let controller = ViewController.shared() else { return }
+        controller.appendNote(name: name, content: content, specified_project: project)
     }
 
     func create(name: String, content: String) {

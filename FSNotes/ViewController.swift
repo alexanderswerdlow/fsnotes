@@ -1913,6 +1913,61 @@ class ViewController: NSViewController,
             }
         }
     }
+    
+    func appendNote(name: String = "", content: String = "", specified_project: String = "", type: NoteType? = nil, project: Project? = nil, load: Bool = false) {
+        guard let vc = ViewController.shared() else { return }
+        
+        let selectedProjects = vc.sidebarOutlineView.getSidebarProjects()
+        var sidebarProject = project ?? selectedProjects?.first
+        var text = content
+        
+        if let type = vc.getSidebarType(), type == .Todo, content.count == 0 {
+            text = "- [ ] "
+        }
+        
+        if sidebarProject == nil {
+            let projects = storage.getProjects()
+            sidebarProject = projects.first
+        }
+        
+        guard let selected_project = sidebarProject else { return }
+        
+        let storage = Storage.sharedInstance()
+
+        let project_to_modify = specified_project == "" ? selected_project.label : specified_project
+        let existing_note = storage.noteList.first(where: {$0.project.label == project_to_modify && $0.fileName == name})
+        let note = existing_note ?? Note(name: name, project: selected_project, type: type)
+        let prefix = note.content.length == 0 ? String() : "\n\n"
+        Storage.sharedInstance().add(note)
+        let string = NSMutableAttributedString(string: "\(prefix)\(text)")
+        note.append(string: string)
+        note.save()
+
+        _ = note.scanContentTags()
+
+        disablePreview()
+        notesTableView.deselectNotes()
+        editArea.string = text
+        EditTextView.note = note
+        
+        if let si = getSidebarItem(), si.type == .Tag {
+            note.addTag(si.name)
+        }
+
+        search.stringValue.removeAll()
+
+        updateTable() {
+            DispatchQueue.main.async {
+                self.notesTableView.saveNavigationHistory(note: note)
+                if let index = self.notesTableView.getIndex(note) {
+                    self.notesTableView.selectRowIndexes([index], byExtendingSelection: false)
+                    self.notesTableView.scrollRowToVisible(index)
+                }
+            
+                self.focusEditArea()
+            }
+        }
+    }
 
     public func sortAndMove(note: Note, project: Project? = nil) {
         guard let notes = filteredNoteList else { return }
