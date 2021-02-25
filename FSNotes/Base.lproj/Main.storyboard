@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="17506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="17701" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17506"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="17701"/>
         <capability name="Named colors" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -134,7 +134,7 @@ CA
                                                 <action selector="pinMenu:" target="Ady-hI-5gd" id="5kK-KD-hhk"/>
                                             </connections>
                                         </menuItem>
-                                        <menuItem title="Remove encryption" keyEquivalent="7" identifier="fileMenu.toggleLock" id="fkH-Wf-n87">
+                                        <menuItem title="Remove encryption" keyEquivalent="7" identifier="fileMenu.removeEncryption" id="fkH-Wf-n87">
                                             <connections>
                                                 <action selector="removeNoteEncryption:" target="Ady-hI-5gd" id="nZq-wN-Jep"/>
                                             </connections>
@@ -1366,11 +1366,11 @@ CA
                                             <scrollView fixedFrame="YES" borderType="none" autohidesScrollers="YES" horizontalLineScroll="57" horizontalPageScroll="10" verticalLineScroll="57" verticalPageScroll="10" usesPredominantAxisScrolling="NO" translatesAutoresizingMaskIntoConstraints="NO" id="BdT-Ac-GAV">
                                                 <rect key="frame" x="0.0" y="0.0" width="144" height="600"/>
                                                 <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                                                <clipView key="contentView" drawsBackground="NO" id="ceg-yR-Ncf">
+                                                <clipView key="contentView" ambiguous="YES" drawsBackground="NO" id="ceg-yR-Ncf">
                                                     <rect key="frame" x="0.0" y="0.0" width="144" height="600"/>
                                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                     <subviews>
-                                                        <outlineView verticalHuggingPriority="750" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" tableStyle="plain" autosaveColumns="NO" rowHeight="55" rowSizeStyle="automatic" viewBased="YES" indentationPerLevel="16" outlineTableColumn="Gwp-vX-YaR" id="urA-eK-bWB" customClass="SidebarOutlineView" customModule="FSNotes" customModuleProvider="target">
+                                                        <outlineView verticalHuggingPriority="750" ambiguous="YES" allowsExpansionToolTips="YES" columnAutoresizingStyle="lastColumnOnly" tableStyle="plain" autosaveColumns="NO" rowHeight="55" rowSizeStyle="automatic" viewBased="YES" indentationPerLevel="16" outlineTableColumn="Gwp-vX-YaR" id="urA-eK-bWB" customClass="SidebarOutlineView" customModule="FSNotes" customModuleProvider="target">
                                                             <rect key="frame" x="0.0" y="0.0" width="144" height="562"/>
                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                             <size key="intercellSpacing" width="3" height="2"/>
@@ -1389,7 +1389,7 @@ CA
                                                                     </textFieldCell>
                                                                     <tableColumnResizingMask key="resizingMask" resizeWithTable="YES" userResizable="YES"/>
                                                                     <prototypeCellViews>
-                                                                        <tableCellView identifier="DataCell" misplaced="YES" id="I0q-sX-uBq" customClass="SidebarCellView" customModule="FSNotes" customModuleProvider="target">
+                                                                        <tableCellView identifier="DataCell" id="I0q-sX-uBq" customClass="SidebarCellView" customModule="FSNotes" customModuleProvider="target">
                                                                             <rect key="frame" x="1" y="1" width="141" height="50"/>
                                                                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                                                             <subviews>
@@ -1402,7 +1402,7 @@ CA
                                                                                     <imageCell key="cell" refusesFirstResponder="YES" imageScaling="proportionallyDown" image="repository" id="WHo-8O-PFO"/>
                                                                                 </imageView>
                                                                                 <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="kTp-qw-RCd">
-                                                                                    <rect key="frame" x="23" y="17" width="96" height="16"/>
+                                                                                    <rect key="frame" x="23" y="17" width="117" height="16"/>
                                                                                     <textFieldCell key="cell" lineBreakMode="truncatingTail" sendsActionOnEndEditing="YES" title="Table View Cell" id="2ZQ-YX-F9M">
                                                                                         <font key="font" metaFont="system"/>
                                                                                         <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
@@ -1415,32 +1415,18 @@ CA
                                                                                         <action selector="projectName:" target="I0q-sX-uBq" id="Mx3-zh-Tac"/>
                                                                                     </connections>
                                                                                 </textField>
-                                                                                <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="gNt-mn-bYH">
-                                                                                    <rect key="frame" x="117" y="16" width="24" height="18"/>
-                                                                                    <buttonCell key="cell" type="recessed" bezelStyle="recessed" image="NSAddTemplate" imagePosition="overlaps" alignment="center" borderStyle="border" inset="2" id="b1m-o5-TLn">
-                                                                                        <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES" changeBackground="YES" changeGray="YES"/>
-                                                                                        <font key="font" metaFont="systemBold" size="12"/>
-                                                                                    </buttonCell>
-                                                                                    <connections>
-                                                                                        <action selector="add:" target="I0q-sX-uBq" id="1Ni-H9-HG0"/>
-                                                                                    </connections>
-                                                                                </button>
                                                                             </subviews>
                                                                             <constraints>
-                                                                                <constraint firstItem="gNt-mn-bYH" firstAttribute="centerY" secondItem="I0q-sX-uBq" secondAttribute="centerY" id="1I3-WJ-8IJ"/>
-                                                                                <constraint firstAttribute="trailing" secondItem="gNt-mn-bYH" secondAttribute="trailing" constant="3" id="5F2-Dz-EWs"/>
                                                                                 <constraint firstItem="1dd-W4-MiY" firstAttribute="leading" secondItem="I0q-sX-uBq" secondAttribute="leading" constant="3" id="KTq-ca-aXt"/>
                                                                                 <constraint firstItem="kTp-qw-RCd" firstAttribute="leading" secondItem="1dd-W4-MiY" secondAttribute="trailing" constant="5" id="bav-Au-PqY"/>
                                                                                 <constraint firstItem="kTp-qw-RCd" firstAttribute="centerY" secondItem="I0q-sX-uBq" secondAttribute="centerY" id="fox-W9-Kiy"/>
-                                                                                <constraint firstItem="gNt-mn-bYH" firstAttribute="top" secondItem="1dd-W4-MiY" secondAttribute="top" id="iFi-pd-z2i"/>
-                                                                                <constraint firstItem="gNt-mn-bYH" firstAttribute="leading" secondItem="kTp-qw-RCd" secondAttribute="trailing" id="jlc-Dd-Ttg"/>
                                                                                 <constraint firstItem="1dd-W4-MiY" firstAttribute="centerY" secondItem="I0q-sX-uBq" secondAttribute="centerY" id="slG-ke-sdb"/>
+                                                                                <constraint firstAttribute="trailing" secondItem="kTp-qw-RCd" secondAttribute="trailing" constant="3" id="uQs-RT-dHB"/>
                                                                             </constraints>
                                                                             <connections>
                                                                                 <outlet property="icon" destination="1dd-W4-MiY" id="cb4-9r-kd2"/>
                                                                                 <outlet property="imageView" destination="1dd-W4-MiY" id="B95-xv-93h"/>
                                                                                 <outlet property="label" destination="kTp-qw-RCd" id="72n-qf-ujw"/>
-                                                                                <outlet property="plus" destination="gNt-mn-bYH" id="eRJ-8o-oUh"/>
                                                                                 <outlet property="textField" destination="kTp-qw-RCd" id="2KP-pc-Kir"/>
                                                                             </connections>
                                                                         </tableCellView>
@@ -1635,7 +1621,7 @@ CA
                                                                                         <constraint firstAttribute="trailing" secondItem="abw-Lq-K7d" secondAttribute="trailing" constant="23" id="ngR-5z-x5I"/>
                                                                                         <constraint firstItem="ggY-RT-nIM" firstAttribute="leading" secondItem="dN9-ig-hka" secondAttribute="trailing" constant="6" id="ou4-gb-PeG"/>
                                                                                         <constraint firstItem="HZg-Mu-dwG" firstAttribute="leading" secondItem="ggY-RT-nIM" secondAttribute="trailing" constant="7" id="rtM-JI-JMl"/>
-                                                                                        <constraint firstItem="abw-Lq-K7d" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="UvD-jB-7Ok" secondAttribute="trailing" constant="12" id="sjw-Vc-jfj"/>
+                                                                                        <constraint firstItem="abw-Lq-K7d" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="UvD-jB-7Ok" secondAttribute="trailing" constant="5" id="sjw-Vc-jfj"/>
                                                                                         <constraint firstItem="EXQ-Ld-D5r" firstAttribute="leading" secondItem="8qL-z4-nzh" secondAttribute="leading" constant="26" id="xyO-Sr-YNv"/>
                                                                                         <constraint firstItem="UvD-jB-7Ok" firstAttribute="leading" secondItem="8qL-z4-nzh" secondAttribute="leading" constant="26" id="z9R-oc-Yoe"/>
                                                                                     </constraints>
@@ -1647,6 +1633,7 @@ CA
                                                                                         <outlet property="name" destination="UvD-jB-7Ok" id="5Mo-lm-FHk"/>
                                                                                         <outlet property="pin" destination="9h5-Ob-Nej" id="vPu-Ic-vSj"/>
                                                                                         <outlet property="preview" destination="EXQ-Ld-D5r" id="aS2-51-odI"/>
+                                                                                        <outlet property="titleConstraint" destination="sjw-Vc-jfj" id="LtK-jM-upC"/>
                                                                                     </connections>
                                                                                 </tableCellView>
                                                                             </prototypeCellViews>
@@ -1926,7 +1913,7 @@ CA
                                 <action selector="pinMenu:" target="rPt-NT-nkU" id="EyW-HI-rr9"/>
                             </connections>
                         </menuItem>
-                        <menuItem title="Remove encryption" keyEquivalent="7" identifier="note.toggleLock" id="5gL-j7-Zq8">
+                        <menuItem title="Remove encryption" keyEquivalent="7" identifier="fileMenu.removeEncryption" id="5gL-j7-Zq8">
                             <connections>
                                 <action selector="removeNoteEncryption:" target="rPt-NT-nkU" id="5ga-uK-aSH"/>
                             </connections>
@@ -3295,15 +3282,14 @@ Italian 🇮🇹</string>
         </scene>
     </scenes>
     <resources>
-        <image name="NSAddTemplate" width="14" height="13"/>
         <image name="NSLockLockedTemplate" width="14" height="15"/>
         <image name="NSQuickLookTemplate" width="21" height="13"/>
         <image name="NSShareTemplate" width="15" height="17"/>
-        <image name="dockIcon2" width="67" height="67"/>
+        <image name="dockIcon2" width="66.5" height="66.5"/>
         <image name="dockIcon4" width="64" height="64"/>
         <image name="icon" width="1024" height="1024"/>
-        <image name="logoInCircle" width="500" height="500"/>
-        <image name="new_note_button" width="512" height="512"/>
+        <image name="logoInCircle" width="250" height="250"/>
+        <image name="new_note_button" width="256" height="256"/>
         <image name="pin" width="128" height="128"/>
         <image name="prefsAdvanced" width="171" height="171"/>
         <image name="prefsEditor" width="128" height="128"/>

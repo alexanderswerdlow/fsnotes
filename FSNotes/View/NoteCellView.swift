@@ -15,6 +15,7 @@ class NoteCellView: NSTableCellView {
     @IBOutlet var date: NSTextField!
     @IBOutlet var pin: NSImageView!
     
+    @IBOutlet weak var titleConstraint: NSLayoutConstraint!
     @IBOutlet weak var imagePreview: NSImageView!
     @IBOutlet weak var imagePreviewSecond: NSImageView!
     @IBOutlet weak var imagePreviewThird: NSImageView!
@@ -61,6 +62,7 @@ class NoteCellView: NSTableCellView {
         date.layer?.zPosition = 1001
         date.textColor = UserDataService.instance.isDark ? NSColor.white : NSColor.gray
         date.isHidden = UserDefaultsManagement.hideDate
+        titleConstraint.constant = UserDefaultsManagement.hideDate ? 0 : 5
 
         if (UserDefaultsManagement.horizontalOrientation) {
             preview.isHidden = true
@@ -246,17 +248,34 @@ class NoteCellView: NSTableCellView {
     }
 
     public func getPreviewImage(imageUrl: URL, note: Note) -> Image? {
-        if let image = getPreviewImage(url: imageUrl) {
-            return image
-        } else {
-            guard let image =
-                NoteAttachment.getImageAndCacheData(url: imageUrl, note: note)
-                else { return nil }
+        let tempURL = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("MainNotesList")
 
-            let size = CGSize(width: 70, height: 70)
-            if let resized = image.crop(to: size) {
-                savePreviewImage(url: imageUrl, image: resized)
-                return resized
+        if !FileManager.default.fileExists(atPath: tempURL.path) {
+            try? FileManager.default.createDirectory(at: tempURL, withIntermediateDirectories: false, attributes: nil)
+        }
+
+        if let cacheName = imageUrl.absoluteString.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed)?.md5 {
+
+            let file = tempURL.appendingPathComponent(cacheName)
+            if FileManager.default.fileExists(atPath: file.path) {
+                if let data = try? Data(contentsOf: file), let image = NSImage(data: data) {
+                    return image
+                }
+            }
+
+            do {
+                let data = try Data(contentsOf: imageUrl)
+                if let image = NSImage(data: data) {
+                    let size = CGSize(width: 70, height: 70)
+
+                    if let resized = image.crop(to: size) {
+                        let jpegImageData = resized.jpgData
+                        try? jpegImageData?.write(to: file, options: .atomic)
+                        return resized
+                    }
+                }
+            } catch {
+                print(error.localizedDescription)
             }
         }
 
@@ -281,52 +300,20 @@ class NoteCellView: NSTableCellView {
         for constraint in self.constraints {
             if constraint.secondAttribute == .top, let item = constraint.firstItem {
                 if let firstItem = item as? NSImageView, firstItem.identifier?.rawValue == "pin" {
-                    constraint.constant = margin - 1
-                    continue
-                }
-
-                if item.isKind(of: NameTextField.self) {
                     constraint.constant = margin
                     continue
                 }
 
+                if item.isKind(of: NameTextField.self) {
+                    constraint.constant = margin + 1.5
+                    continue
+                }
+
                 if let item = item as? NSTextField, item.identifier?.rawValue == "cellDate" {
-                    constraint.constant = margin + 2
+                    constraint.constant = margin + 3.5
                 }
             }
         }
-    }
-
-    private func getCacheUrl(from url: URL) -> URL? {
-        var temporary = URL(fileURLWithPath: NSTemporaryDirectory())
-        temporary.appendPathComponent("Preview")
-
-        return temporary.appendingPathComponent(url.absoluteString.md5 + "." + url.pathExtension)
-    }
-
-    private func savePreviewImage(url: URL, image: Image) {
-        var temporary = URL(fileURLWithPath: NSTemporaryDirectory())
-        temporary.appendPathComponent("Preview")
-
-        if !FileManager.default.fileExists(atPath: temporary.path) {
-            try? FileManager.default.createDirectory(at: temporary, withIntermediateDirectories: false, attributes: nil)
-        }
-
-        if let url = getCacheUrl(from: url) {
-            if let data = image.jpgData {
-                try? data.write(to: url)
-            }
-        }
-    }
-
-    private func getPreviewImage(url: URL) -> Image? {
-        if let url = getCacheUrl(from: url) {
-            if let data = try? Data(contentsOf: url) {
-                return Image(data: data)
-            }
-        }
-
-        return nil
     }
 
     public func fixTopConstraint(position: Int?, note: Note) {

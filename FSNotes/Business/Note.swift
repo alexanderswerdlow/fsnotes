@@ -274,13 +274,13 @@ public class Note: NSObject  {
                 .creationDate
     }
     
-    func move(to: URL, project: Project? = nil) -> Bool {
+    func move(to: URL, project: Project? = nil, forceRewrite: Bool = false) -> Bool {
         let sharedStorage = Storage.sharedInstance()
 
         do {
             var destination = to
 
-            if FileManager.default.fileExists(atPath: to.path) {
+            if FileManager.default.fileExists(atPath: to.path) && !forceRewrite {
                 guard let project = project ?? sharedStorage.getProjectByNote(url: to) else { return false }
 
                 let ext = getExtensionForContainer()
@@ -454,6 +454,10 @@ public class Note: NSObject  {
 
         if !FileManager.default.fileExists(atPath: dest.path) {
             try? FileManager.default.createDirectory(at: dest, withIntermediateDirectories: false, attributes: nil)
+
+            if let data = "true".data(using: .utf8) {
+                try? dest.setExtendedAttribute(data: data, forName: "es.fsnot.hidden.dir")
+            }
         }
 
         do {
@@ -493,6 +497,9 @@ public class Note: NSObject  {
         if type == .Markdown && container == .none {
             let imagesMeta = getAllImages()
             for imageMeta in imagesMeta {
+                let imagePath = project.url.appendingPathComponent(imageMeta.path).path
+                project.storage.hideImages(directory: imagePath, srcPath: imagePath)
+
                 move(from: imageMeta.url, imagePath: imageMeta.path, to: project)
             }
 
@@ -684,9 +691,9 @@ public class Note: NSObject  {
     func getPrettifiedContent() -> String {
         #if NOT_EXTENSION || os(OSX)
             let mutable = NotesTextProcessor.convertAppTags(in: self.content)
-            let content = NotesTextProcessor.convertAppLinks(in: mutable.string)
+            let content = NotesTextProcessor.convertAppLinks(in: mutable)
 
-            return cleanMetaData(content: content)
+            return cleanMetaData(content: content.string)
         #else
             return cleanMetaData(content: self.content.string)
         #endif
@@ -1272,7 +1279,9 @@ public class Note: NSObject  {
             return URL(string: imageName)
         }
 
-        if isEncrypted() && imageName.starts(with: "/i/") {
+        if isEncrypted() && (
+            imageName.starts(with: "/i/") || imageName.starts(with: "i/")
+        ) {
             return project.url.appendingPathComponent(imageName)
         }
         
@@ -1287,10 +1296,6 @@ public class Note: NSObject  {
         return nil
     }
     
-    public func getImageCacheUrl() -> URL? {
-        return project.url.appendingPathComponent("/.cache/")
-    }
-
     public func getAllImages(content: NSMutableAttributedString? = nil) -> [(url: URL, path: String)] {
         let content = content ?? self.content
         var res = [(url: URL, path: String)]()
@@ -1361,9 +1366,20 @@ public class Note: NSObject  {
 
             if let url = self.getImageUrl(imageName: imagePath) {
                 if url.isRemote() {
-                    urls.append(url)
-                    i += 1
+                    return
                 } else if FileManager.default.fileExists(atPath: url.path), url.isImage || url.isVideo {
+
+                    if container == .none && type == .Markdown {
+                        var prefix = imagePath
+                        if imagePath.first == "/" {
+                            prefix = String(imagePath.dropFirst())
+                        }
+                        let imageURL = project.url.appendingPathComponent(prefix)
+                        let mediaPath = imageURL.deletingLastPathComponent().path
+
+                        project.storage.hideImages(directory: mediaPath, srcPath: prefix)
+                    }
+
                     urls.append(url)
                     i += 1
                 }
@@ -1434,7 +1450,7 @@ public class Note: NSObject  {
             return "assets/\(name)"
         }
 
-        return "/i/\(name)"
+        return "i/\(name)"
     }
 
     public func isEqualURL(url: URL) -> Bool {
@@ -1577,10 +1593,10 @@ public class Note: NSObject  {
         for imageMeta in imagesMeta {
             let fileName = imageMeta.url.lastPathComponent
             var dst: URL?
-            var prefix = "/files/"
+            var prefix = "files/"
 
             if imageMeta.url.isImage {
-                prefix = "/i/"
+                prefix = "i/"
             }
 
             dst = project.url.appendingPathComponent(prefix + fileName)

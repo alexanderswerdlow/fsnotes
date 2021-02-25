@@ -341,24 +341,47 @@ public class NotesTextProcessor {
      - returns: Content string with converted links
      */
 
-    public static func convertAppLinks(in content: String) -> String {
-        var resultString = content
-        NotesTextProcessor.appUrlRegex.matches(content, range: NSRange(location: 0, length: content.count), completion: { (result) -> (Void) in
+    public static func convertAppLinks(in content: NSMutableAttributedString) -> NSMutableAttributedString {
+        let attributedString = content.mutableCopy() as! NSMutableAttributedString
+        let range = NSRange(0..<content.string.count)
+        let tagQuery = "fsnotes://find?id="
+
+        NotesTextProcessor.appUrlRegex.matches(content.string, range: range, completion: { (result) -> (Void) in
             guard let innerRange = result?.range else { return }
-            var _range = innerRange
-            _range.location = _range.location + 2
-            _range.length = _range.length - 4
-            
-            let lintTitle = (content as NSString).substring(with: _range)
-            
-            let allowedCharacters = CharacterSet(bitmapRepresentation: CharacterSet.urlPathAllowed.bitmapRepresentation)
-            let escapedString = lintTitle.addingPercentEncoding(withAllowedCharacters: allowedCharacters)!
-            
-            let newLink = "[\(lintTitle)](fsnotes://find?id=\(escapedString))"
-            resultString = resultString.replacingOccurrences(of: "[[\(lintTitle)]]", with: newLink)
+
+            var substring = attributedString.mutableString.substring(with: innerRange)
+            substring = substring
+                .replacingOccurrences(of: "[[", with: "")
+                .replacingOccurrences(of: "]]", with: "")
+                .trim()
+
+            guard let tag = substring.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) else { return }
+
+            attributedString.addAttribute(.link, value: "\(tagQuery)\(tag)", range: innerRange)
         })
+
+        attributedString.enumerateAttribute(.link, in: range) { (value, range, _) in
+            if let value = value as? String, value.starts(with: tagQuery) {
+                if let tag = value
+                    .replacingOccurrences(of: tagQuery, with: "")
+                    .removingPercentEncoding
+                {
+
+                    if NotesTextProcessor.getSpanCodeBlockRange(content: attributedString, range: range) != nil {
+                        return
+                    }
+
+                    if NotesTextProcessor.getFencedCodeBlockRange(paragraphRange: range, string: attributedString) != nil {
+                        return
+                    }
+
+                    let link = "[\(tag)](\(value))"
+                    attributedString.replaceCharacters(in: range, with: link)
+                }
+            }
+        }
         
-        return resultString
+        return attributedString
     }
 
     public static func convertAppTags(in content: NSMutableAttributedString) -> NSMutableAttributedString {
@@ -717,7 +740,12 @@ public class NotesTextProcessor {
                 guard substring.count > 0 else { return }
                 guard let note = EditTextView.note else { return }
 
-                if substring.starts(with: "/i/") || substring.starts(with: "/files/"), let path = note.project.url.appendingPathComponent(substring).path.removingPercentEncoding {
+                if substring.starts(with: "/i/")
+                    || substring.starts(with: "i/")
+                    || substring.starts(with: "/files/")
+                    || substring.starts(with: "files/"),
+                    let path = note.project.url.appendingPathComponent(substring).path.removingPercentEncoding
+                {
                     substring = "file://" + path
                 } else if note.isTextBundle() && substring.starts(with: "assets/"), let path = note.getURL().appendingPathComponent(substring).path.removingPercentEncoding {
                     substring = "file://" + path
@@ -823,8 +851,8 @@ public class NotesTextProcessor {
         }
                 
         // We detect and process italics
-        NotesTextProcessor.italicRegex.matches(string, range: paragraphRange) { (result) -> Void in
-            guard let range = result?.range else { return }
+        NotesTextProcessor.strictItalicRegex.matches(string, range: paragraphRange) { (result) -> Void in
+            guard let range = result?.range(at: 3) else { return }
 
             if NotesTextProcessor.isLink(attributedString: attributedString, range: range) {
                 return
@@ -832,7 +860,7 @@ public class NotesTextProcessor {
 
             attributedString.addAttribute(.font, value: italicFont, range: range)
 
-            NotesTextProcessor.boldRegex.matches(string, range: range) { (result) -> Void in
+            NotesTextProcessor.strictBoldRegex.matches(string, range: range) { (result) -> Void in
                 guard let range = result?.range else { return }
                 let boldItalic = Font.addBold(font: italicFont)
                 attributedString.addAttribute(.font, value: boldItalic, range: range)
@@ -840,18 +868,18 @@ public class NotesTextProcessor {
 
             attributedString.fixAttributes(in: range)
             
-            let preRange = NSMakeRange(range.location, 1)
+            let preRange = NSMakeRange(range.location - 1, 1)
             attributedString.addAttribute(.foregroundColor, value: NotesTextProcessor.syntaxColor, range: preRange)
             hideSyntaxIfNecessary(range: preRange)
             
-            let postRange = NSMakeRange(range.location + range.length - 1, 1)
+            let postRange = NSMakeRange(range.location + range.length, 1)
             attributedString.addAttribute(.foregroundColor, value: NotesTextProcessor.syntaxColor, range: postRange)
             hideSyntaxIfNecessary(range: postRange)
         }
         
         // We detect and process bolds
-        NotesTextProcessor.boldRegex.matches(string, range: paragraphRange) { (result) -> Void in
-            guard let range = result?.range else { return }
+        NotesTextProcessor.strictBoldRegex.matches(string, range: paragraphRange) { (result) -> Void in
+            guard let range = result?.range(at: 3) else { return }
 
             if NotesTextProcessor.isLink(attributedString: attributedString, range: range) {
                 return
@@ -870,11 +898,11 @@ public class NotesTextProcessor {
 
             attributedString.fixAttributes(in: range)
 
-            let preRange = NSMakeRange(range.location, 2)
+            let preRange = NSMakeRange(range.location - 2, 2)
             attributedString.addAttribute(.foregroundColor, value: NotesTextProcessor.syntaxColor, range: preRange)
             hideSyntaxIfNecessary(range: preRange)
             
-            let postRange = NSMakeRange(range.location + range.length - 2, 2)
+            let postRange = NSMakeRange(range.location + range.length, 2)
             attributedString.addAttribute(.foregroundColor, value: NotesTextProcessor.syntaxColor, range: postRange)
             hideSyntaxIfNecessary(range: postRange)
         }
@@ -1025,10 +1053,10 @@ public class NotesTextProcessor {
 
     public static func getAttachPrefix(url: URL? = nil) -> String {
         if let url = url, !url.isImage {
-            return "/files/"
+            return "files/"
         }
 
-        return "/i/"
+        return "i/"
     }
 
     public static func isLink(attributedString: NSAttributedString, range: NSRange) -> Bool {
@@ -1373,12 +1401,12 @@ public class NotesTextProcessor {
      __Bold__
      */
     
-    fileprivate static let strictBoldPattern = "(^|[\\W_])(?:(?!\\1)|(?=^))(\\*|_)\\2(?=\\S)(.*?\\S)\\2\\2(?!\\2)(?=[\\W_]|$)"
-    
+    fileprivate static let strictBoldPattern = "(^|[\\s_])(?:(?!\\1)|(?=^))(\\*|_)\\2(?=\\S)(.*?\\S)\\2\\2(?!\\2)(?=[\\s_]|$)"
+
     public static let strictBoldRegex = MarklightRegex(pattern: strictBoldPattern, options: [.anchorsMatchLines])
-    
+
     fileprivate static let boldPattern = "(\\*\\*|__) (?=\\S) (.+?[*_]*) (?<=\\S) \\1"
-    
+
     public static let boldRegex = MarklightRegex(pattern: boldPattern, options: [.allowCommentsAndWhitespace, .anchorsMatchLines])
 
     fileprivate static let strikePattern = "(\\~\\~) (?=\\S) (.+?[~]*) (?<=\\S) \\1"
@@ -1392,14 +1420,14 @@ public class NotesTextProcessor {
      _Italic_
      */
     
-    fileprivate static let strictItalicPattern = "(^|[\\W_])(?:(?!\\1)|(?=^))(\\*|_)(?=\\S)((?:(?!\\2).)*?\\S)\\2(?!\\2)(?=[\\W_]|$)"
-    
+    fileprivate static let strictItalicPattern = "(^|[\\s_])(?:(?!\\1)|(?=^))(\\*|_)(?=\\S)((?:(?!\\2).)*?\\S)\\2(?!\\2)(?=[\\s_]|$)"
+
     public static let strictItalicRegex = MarklightRegex(pattern: strictItalicPattern, options: [.anchorsMatchLines])
     
     fileprivate static let italicPattern = "(\\_){1} (?=\\S) (.+?) (?<=\\S) \\1"
 
     public static let italicRegex = MarklightRegex(pattern: italicPattern, options: [.allowCommentsAndWhitespace, .anchorsMatchLines])
-    
+
     fileprivate static let autolinkPattern = "((https?|ftp):[^\\)'\">\\s]+)"
     
     public static let autolinkRegex = MarklightRegex(pattern: autolinkPattern, options: [.allowCommentsAndWhitespace, .dotMatchesLineSeparators])

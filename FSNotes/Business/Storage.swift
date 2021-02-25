@@ -28,7 +28,8 @@ class Storage {
     var notesDict: [String: Note] = [:]
 
     public var allowedExtensions = [
-        "md", "markdown",
+        "md",
+        "markdown",
         "txt",
         "rtf",
         "fountain",
@@ -45,6 +46,8 @@ class Storage {
     private let lastNewsDate = "2020-06-20"
     public var isFinishedTagsLoading = false
     public var isCrashedLastTime = false
+
+    private var relativeInlineImagePaths = [String]()
 
     init() {
         let storageType = UserDefaultsManagement.storageType
@@ -785,7 +788,7 @@ class Storage {
         return
             noteList.first(where: {
                 return (
-                    $0.url.path == standardized.path
+                    $0.url.path.lowercased() == standardized.path.lowercased()
                 )
             })
     }
@@ -824,7 +827,7 @@ class Storage {
     func getBy(startWith: String) -> [Note]? {
         return
             noteList.filter{
-                $0.title.starts(with: startWith)
+                $0.title.lowercased().starts(with: startWith.lowercased())
             }
     }
 
@@ -833,12 +836,16 @@ class Storage {
 
         if let word = word {
             notes = notes
-                .filter{ $0.title.contains(word) }
+                .filter{
+                    $0.title.contains(word) && $0.project.firstLineAsTitle
+                        || $0.fileName.contains(word) && !$0.project.firstLineAsTitle
+
+                }
                 .filter({ !$0.isTrash() })
 
             guard notes.count > 0 else { return nil }
 
-            var titles = notes.map{ String($0.title) }
+            var titles = notes.map{ String($0.project.firstLineAsTitle ? $0.title : $0.fileName) }
 
             titles = Array(Set(titles))
             titles = titles
@@ -868,7 +875,7 @@ class Storage {
 
         let titles = notes
             .filter({ !$0.isTrash() })
-            .map{ String($0.title) }
+            .map{ String($0.project.firstLineAsTitle ? $0.title : $0.fileName ) }
             .filter({ $0.count > 0 })
             .filter({ !$0.starts(with: "![](") })
             .prefix(100)
@@ -952,6 +959,11 @@ class Storage {
 
                 if isDirectoryResourceValue as? Bool == true,
                     isPackageResourceValue as? Bool == false {
+
+                    if (url as URL).isHidden() {
+                        continue
+                    }
+
                     subdirs.append(url)
                 }
             }
@@ -1393,6 +1405,39 @@ class Storage {
         }
 
         return note
+    }
+
+    public func hideImages(directory: String, srcPath: String) {
+        if !relativeInlineImagePaths.contains(directory) {
+            let url = URL(fileURLWithPath: directory, isDirectory: true)
+
+            relativeInlineImagePaths.append(directory)
+
+            if !url.isHidden(),
+               FileManager.default.directoryExists(atUrl: url),
+               srcPath.contains("/"),
+               !srcPath.contains("..")
+            {
+                if let contentList = try? FileManager.default.contentsOfDirectory(atPath: url.path), containsTextFiles(contentList) {
+                    return
+                }
+
+                if let data = "true".data(using: .utf8) {
+                    try? url.setExtendedAttribute(data: data, forName: "es.fsnot.hidden.dir")
+                }
+            }
+        }
+    }
+
+    private func containsTextFiles(_ list: [String]) -> Bool {
+        for item in list {
+            let ext = (item as NSString).pathExtension.lowercased()
+            if allowedExtensions.contains(ext) {
+                return true
+            }
+        }
+
+        return false
     }
 }
 

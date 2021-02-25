@@ -201,7 +201,6 @@ class NotesTableView: NSTableView, NSTableViewDataSource,
             let operation = BlockOperation()
             operation.addExecutionBlock { [weak self] in        
                 DispatchQueue.main.async {
-
                     guard self?.selectedRowIndexes.count == 0x01 else {
                         vc.editArea.clear()
                         return
@@ -211,6 +210,7 @@ class NotesTableView: NSTableView, NSTableViewDataSource,
                           self?.fillTimestamp == timestamp else { return }
 
                     vc.editArea.fill(note: note, highlight: true)
+
                     if UserDefaultsManagement.focusInEditorOnNoteSelect && !UserDataService.instance.searchTrigger {
                         vc.focusEditArea()
                     }
@@ -372,6 +372,12 @@ class NotesTableView: NSTableView, NSTableViewDataSource,
             {
                 menuItem.isEnabled = (vc.notesTableView.selectedRowIndexes.count == 1)
             }
+
+            if menuItem.identifier?.rawValue == "fileMenu.removeEncryption" {
+                if let note = EditTextView.note {
+                    menuItem.isEnabled = note.isEncrypted()
+                }
+            }
         }
 
         vc.loadMoveMenu()
@@ -494,7 +500,6 @@ class NotesTableView: NSTableView, NSTableViewDataSource,
 
         let at = self.countVisiblePinned()
         self.noteList.insert(note, at: at)
-        vc.filteredNoteList?.insert(note, at: at)
         
         self.beginUpdates()
         self.insertRows(at: IndexSet(integer: at), withAnimation: .effectFade)

@@ -202,8 +202,8 @@ class EditTextView: UITextView, UITextViewDelegate {
             if let rtfd = try? attributedString.data(from: NSMakeRange(0, attributedString.length), documentAttributes: [NSAttributedString.DocumentAttributeKey.documentType:NSAttributedString.DocumentType.rtfd]) {
 
                 UIPasteboard.general.setItems([
-                    ["es.fsnot.attributed.text": rtfd],
                     [kUTTypePlainText as String: attributedString.string],
+                    ["es.fsnot.attributed.text": rtfd],
                     [kUTTypeFlatRTFD as String: rtfd]
                 ])
 
@@ -253,7 +253,7 @@ class EditTextView: UITextView, UITextViewDelegate {
             if let imageUrl = note.getImageUrl(imageName: path) {
 
                 let range = NSRange(location: selectedRange.location, length: 1)
-                let attachment = NoteAttachment(title: "", path: path, url: imageUrl, cache: nil, invalidateRange: range, note: note)
+                let attachment = NoteAttachment(title: "", path: path, url: imageUrl, invalidateRange: range, note: note)
 
                 if let attributedString = attachment.getAttributedString() {
 

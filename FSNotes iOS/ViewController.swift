@@ -46,7 +46,6 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     private let metadataQueue = OperationQueue()
     private var delayedInsert: Note?
 
-    private var filteredNoteList: [Note]?
     private var maxSidebarWidth = CGFloat(0)
     private var accessTime = DispatchTime.now()
 
@@ -63,6 +62,7 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
 
     // Last selected project abd tag in sidebar
     public var searchQuery: SearchQuery = SearchQuery(type: .Inbox)
+    public var restoreActivity: URL?
 
     override func viewWillAppear(_ animated: Bool) {
         loadSidebarState()
@@ -334,6 +334,15 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
                 self.sidebarTableView.loadAllTags()
             }
 
+            // fill note from spotlight action
+            if let restore = self.restoreActivity {
+                if let note = Storage.shared().getBy(url: restore) {
+                    DispatchQueue.main.async {
+                        UIApplication.getEVC().load(note: note)
+                    }
+                }
+            }
+
             let spotlightPoint = Date()
             self.reIndexSpotlight()
             print("4. Spotlight indexation finished in \(spotlightPoint.timeIntervalSinceNow * -1) seconds")
@@ -349,7 +358,7 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
 
         var spotlightItems = [CSSearchableItem]()
         for note in storage.noteList {
-            if note.project.isTrash {
+            if note.project.isTrash || !note.project.showInCommon {
                 continue
             }
 
@@ -866,8 +875,8 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
 
     private func isMatched(note: Note, terms: [Substring]) -> Bool {
         for term in terms {
-            if note.name.range(of: term, options: .caseInsensitive, range: nil, locale: nil) != nil ||
-                note.content.string.range(of: term, options: .caseInsensitive, range: nil, locale: nil) != nil {
+            if note.name.range(of: term, options: [.caseInsensitive, .diacriticInsensitive], range: nil, locale: nil) != nil ||
+                note.content.string.range(of: term, options: [.caseInsensitive, .diacriticInsensitive], range: nil, locale: nil) != nil {
                 continue
             }
 

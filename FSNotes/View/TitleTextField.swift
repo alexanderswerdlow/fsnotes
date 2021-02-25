@@ -77,11 +77,17 @@ class TitleTextField: NSTextField {
             .appendingPathComponent(fileName)
             .appendingPathExtension(ext)
 
-        if !FileManager.default.fileExists(atPath: dst.path), note.move(to: dst) {
+        let hasCaseSensitiveDiffOnly = currentName.lowercased() == fileName.lowercased()
+
+        if !FileManager.default.fileExists(atPath: dst.path) || hasCaseSensitiveDiffOnly {
+            _ = note.move(to: dst, forceRewrite: hasCaseSensitiveDiffOnly)
+
             let newTitle = currentTitle.replacingOccurrences(of: ":", with: "-")
             vc.updateTitle(newTitle: newTitle)
 
             updateNotesTableView()
+            
+            vc.reSort(note: note)
         } else {
             vc.updateTitle(newTitle: currentName)
             self.resignFirstResponder()
@@ -117,7 +123,7 @@ class TitleTextField: NSTextField {
         }
 
         if let responder = restoreResponder {
-            window?.makeFirstResponder(responder)
+            NSApp.mainWindow?.makeFirstResponder(responder)
         }
     }
 }

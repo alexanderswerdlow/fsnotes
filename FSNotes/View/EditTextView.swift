@@ -1060,8 +1060,10 @@ class EditTextView: NSTextView, NSTextFinderClient {
             let distance = string.distance(from: storageString.startIndex, to: to)
 
             if isBetweenBraces(location: distance) != nil {
-                DispatchQueue.main.async {
-                    self.complete(nil)
+                if !hasMarkedText() {
+                    DispatchQueue.main.async {
+                        self.complete(nil)
+                    }
                 }
 
                 return super.shouldChangeText(in: affectedCharRange, replacementString: replacementString)
@@ -1092,9 +1094,10 @@ class EditTextView: NSTextView, NSTextFinderClient {
 
                         let hashRange = NSRange(location: range.location - 1, length: 1)
                         if (self.string as NSString).substring(with: hashRange) == "#", nextChar.isWhitespace {
-
-                            DispatchQueue.main.async {
-                                self.complete(nil)
+                            if !hasMarkedText() {
+                                DispatchQueue.main.async {
+                                    self.complete(nil)
+                                }
                             }
                             break
                         }
@@ -1202,7 +1205,7 @@ class EditTextView: NSTextView, NSTextFinderClient {
 
         if let searchQuery = viewDelegate?.search.stringValue,
            searchQuery.count > 0 {
-            if let range = storage.string.range(of: searchQuery, options: .caseInsensitive) {
+            if let range = storage.string.range(of: searchQuery, options: [.caseInsensitive, .diacriticInsensitive]) {
                 let nsRange = NSRange(range, in: storage.string)
                 setSelectedRange(nsRange)
                 scrollToCursor()
@@ -1314,10 +1317,8 @@ class EditTextView: NSTextView, NSTextFinderClient {
             
             guard let imageUrl = note.getImageUrl(imageName: path) else { return false }
 
-            let cacheUrl = note.getImageCacheUrl()
-
             let locationDiff = position > caretLocation ? caretLocation : caretLocation - 1
-            let attachment = NoteAttachment(title: title, path: path, url: imageUrl, cache: cacheUrl, invalidateRange: NSRange(location: locationDiff, length: 1))
+            let attachment = NoteAttachment(title: title, path: path, url: imageUrl, invalidateRange: NSRange(location: locationDiff, length: 1))
 
             guard let attachmentText = attachment.getAttributedString() else { return false }
             guard locationDiff < storage.length else { return false }
@@ -1325,7 +1326,7 @@ class EditTextView: NSTextView, NSTextFinderClient {
             textStorage?.deleteCharacters(in: NSRange(location: position, length: 1))
             textStorage?.replaceCharacters(in: NSRange(location: locationDiff, length: 0), with: attachmentText)
 
-            unLoadImages(note: note)
+            safeSave(note: note)
             setSelectedRange(NSRange(location: caretLocation, length: 0))
 
             return true
@@ -1334,17 +1335,17 @@ class EditTextView: NSTextView, NSTextFinderClient {
         if let archivedData = board.data(forType: NSPasteboard.noteType),
            let urls = NSKeyedUnarchiver.unarchiveObject(with: archivedData) as? [URL],
            let url = urls.first,
-           let note = Storage.shared().getBy(url: url) {
+           let draggableNote = Storage.shared().getBy(url: url) {
 
-            unLoadImages(note: note)
             let replacementRange = NSRange(location: caretLocation, length: 0)
-
-            let title = "[[" + note.title + "]]"
+            let title = "[[" + draggableNote.title + "]]"
             NSApp.mainWindow?.makeFirstResponder(self)
 
             DispatchQueue.main.async {
                 self.insertText(title, replacementRange: replacementRange)
                 self.setSelectedRange(NSRange(location: caretLocation + title.count, length: 0))
+
+                self.safeSave(note: note)
             }
 
             return true
@@ -1354,7 +1355,7 @@ class EditTextView: NSTextView, NSTextFinderClient {
             urls.count > 0 {
             var offset = 0
 
-            unLoadImages(note: note)
+            safeSave(note: note)
 
             for url in urls {
                 do {
@@ -1372,7 +1373,7 @@ class EditTextView: NSTextView, NSTextFinderClient {
                     guard let url = note.getImageUrl(imageName: cleanPath) else { return false }
 
                     let invalidateRange = NSRange(location: caretLocation + offset, length: 1)
-                    let attachment = NoteAttachment(title: "", path: cleanPath, url: url, cache: nil, invalidateRange: invalidateRange, note: note)
+                    let attachment = NoteAttachment(title: "", path: cleanPath, url: url, invalidateRange: invalidateRange, note: note)
 
                     if let string = attachment.getAttributedString() {
                         EditTextView.shouldForceRescan = true
@@ -1404,7 +1405,7 @@ class EditTextView: NSTextView, NSTextFinderClient {
         return false
     }
     
-    public func unLoadImages(note: Note) {
+    public func safeSave(note: Note) {
         guard note.container != .encryptedTextPack else { return }
         
         note.save(attributed: attributedString())
@@ -1456,10 +1457,14 @@ class EditTextView: NSTextView, NSTextFinderClient {
     }
 
     @IBAction func wikiLinks(_ sender: Any) {
-        let range = selectedRange()
-        insertText("[[]]", replacementRange: range)
-        setSelectedRange(NSRange(location: range.location + 2, length: 0))
-        complete(nil)
+        guard let vc = ViewController.shared(),
+            let editArea = vc.editArea,
+            let note = vc.getCurrentNote(),
+            vc.currentPreviewState == .off,
+            editArea.isEditable else { return }
+
+        let formatter = TextFormatter(textView: editArea, note: note)
+        formatter.wikiLink()
     }
 
     @IBAction func pressBold(_ sender: Any) {
@@ -1832,7 +1837,7 @@ class EditTextView: NSTextView, NSTextFinderClient {
             
             if let imageUrl = note.getImageUrl(imageName: path) {
                 let range = NSRange(location: selectedRange.location, length: 1)
-                let attachment = NoteAttachment(title: "", path: path, url: imageUrl, cache: nil, invalidateRange: range, note: note)
+                let attachment = NoteAttachment(title: "", path: path, url: imageUrl, invalidateRange: range, note: note)
 
                 if let attributedString = attachment.getAttributedString() {
                     let newLineImage = NSMutableAttributedString(attributedString: attributedString)

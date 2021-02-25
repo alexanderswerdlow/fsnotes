@@ -505,7 +505,21 @@ public class TextFormatter {
             setSelectedRange(NSMakeRange(range.upperBound + 3, 0))
         }
     }
-    
+
+#if os(OSX)
+    public func wikiLink() {
+        let text = "[[" + attributedString.string + "]]"
+        replaceWith(string: text, range: range)
+
+        if (text.count == 4) {
+            setSelectedRange(NSMakeRange(range.location + 2, 0))
+            textView.complete(nil)
+        } else {
+            setSelectedRange(NSMakeRange(range.location + 2, text.count - 4))
+        }
+    }
+#endif
+
     public func image() {
         let text = "![" + attributedString.string + "]()"
         replaceWith(string: text)
